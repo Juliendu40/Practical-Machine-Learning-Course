@@ -1,0 +1,107 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+plot(cars)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+
+LOADIND DATA:
+
+We load the caret package as well as the data provided to create the training and testing sets
+
+```{r}
+
+library(caret)
+
+trainURL <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+testURL <- "http://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+trainSet <- read.csv(url(trainURL))
+testSet <- read.csv(url(testURL))
+```
+
+We get more info about our data and the features
+
+```{r}
+
+str(trainSet)
+
+```
+
+- There are 160 features, we need to reduce this amount
+- Many features include NA values
+- Many features are not relevant 
+
+
+CLEANING DATA
+
+- We remove the first 7 features that are related to the user and are therefore unrelevant
+- We remove features containing NA values
+- We remove variables with no variance
+
+
+```{r}
+trainSet <- trainSet[, -(1:7)]
+trainSet <- trainSet[ , colSums(is.na(trainSet)) == 0]
+nearZeroVar <- nearZeroVar(trainSet)
+trainSet <- trainSet[, -nearZeroVar]
+dim(trainSet)
+
+
+```
+
+We have reduced the number of variables to 53
+
+
+CROSS VALIDATION
+
+We split the data into the training and test set
+
+
+```{r}
+
+set.seed(2)
+inTrain <- createDataPartition(y=trainSet$classe, p=0.70, list=FALSE)
+training  <- trainSet[inTrain,]
+testing  <- trainSet[-inTrain,]
+
+```
+
+
+MODEL
+
+We start to fit a predictive model  using Random Forest because it automatically selects important variables, which is suitable in our case since we have 53 variables. 
+
+We will see if the accuracy is high enough or if we should try another model
+
+```{r}
+model <- train(classe~.,data=training,method="rf")
+predictions <- predict(model, newdata = testing)
+confusionMatrix(predictions, testing$classe)
+```
+
+
+We get very good results using Random Forest with a 0.9935 accuracy.
+We can apply this model to predict the 20 quiz results 
+
+```{r}
+quizPred <- predict(model, newdata=testSet)
+quizPred
+
+```
+
+
